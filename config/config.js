@@ -1,54 +1,20 @@
 const useDatabaseUrl = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.length > 0);
 
-const sslOptions = process.env.DB_SSL === 'false' ? false : { require: true, rejectUnauthorized: false };
+const ssl = process.env.DB_SSL === 'false' ? undefined : { require: true, rejectUnauthorized: false };
+
+if (!useDatabaseUrl) {
+  console.warn('WARNING: DATABASE_URL is not set. Sequelize will not be able to connect.');
+}
 
 module.exports = {
-  development: useDatabaseUrl
-    ? {
-        use_env_variable: 'DATABASE_URL',
-        dialect: 'postgres',
-        dialectOptions: {
-          ssl: sslOptions,
-        },
-      }
-    : {
-        username: process.env.DB_USER || 'wilfred',
-        password: process.env.DB_PASS || 'williy8615.',
-        database: process.env.DB_NAME || 'pos-orders',
-        host: process.env.DB_HOST || 'localhost',
-        port: Number(process.env.DB_PORT) || 5432,
-        dialect: 'postgres',
-      },
-  test: useDatabaseUrl
-    ? {
-        use_env_variable: 'DATABASE_URL',
-        dialect: 'postgres',
-        dialectOptions: {
-          ssl: sslOptions,
-        },
-      }
-    : {
-        username: process.env.DB_USER || 'wilfred',
-        password: process.env.DB_PASS || 'williy8615.',
-        database: process.env.DB_NAME || 'pos-orders-test',
-        host: process.env.DB_HOST || 'localhost',
-        port: Number(process.env.DB_PORT) || 5432,
-        dialect: 'postgres',
-      },
-  production: useDatabaseUrl
-    ? {
-        use_env_variable: 'DATABASE_URL',
-        dialect: 'postgres',
-        dialectOptions: {
-          ssl: sslOptions,
-        },
-      }
-    : {
-        username: process.env.DB_USER || 'wilfred',
-        password: process.env.DB_PASS || 'williy8615.',
-        database: process.env.DB_NAME || 'pos-orders',
-        host: process.env.DB_HOST || 'localhost',
-        port: Number(process.env.DB_PORT) || 5432,
-        dialect: 'postgres',
-      },
+  development: {
+    use_env_variable: 'DATABASE_URL',
+    dialect: 'postgres',
+    dialectOptions: ssl ? { ssl } : {},
+  },
+  production: {
+    use_env_variable: 'DATABASE_URL',
+    dialect: 'postgres',
+    dialectOptions: ssl ? { ssl } : {},
+  },
 };
