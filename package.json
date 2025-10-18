@@ -18,9 +18,18 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "db:seed": "ts-node -r tsconfig-paths/register src/scripts/seed.ts"
+    "db:seed": "ts-node -r tsconfig-paths/register src/scripts/seed.ts",
+    "db:reset": "ts-node -r tsconfig-paths/register src/scripts/reset-db.ts",
+    "db:reseed": "npm run db:reset && npm run db:seed",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:generate": "npx sequelize-cli migration:generate --name",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "db:migrate:status": "npx sequelize-cli db:migrate:status",
+    "dev": "MORGAN_FORMAT=dev nodemon -L"
   },
   "dependencies": {
+    "morgan": "^1.10.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
@@ -32,6 +41,8 @@
     "sequelize-typescript": "^2.1.6",
     "class-validator": "^0.14.0",
     "class-transformer": "^0.5.1"
+    ,"bcryptjs": "^2.4.3"
+    ,"jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -58,6 +69,8 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
     ,"sequelize-cli": "^6.6.0"
+    ,"nodemon": "^3.0.1"
+    ,"@types/jsonwebtoken": "^9.0.1"
   },
   "jest": {
     "moduleFileExtensions": [
