@@ -3,15 +3,15 @@ import { OrderItem } from './order-item.entity';
 
 @Table({ tableName: 'orders', timestamps: true })
 export class Order extends Model<Order> {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
-  declare id: number;
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: DataType.UUIDV4 })
+  declare id: string;
 
   @HasMany(() => OrderItem)
-  items: OrderItem[];
+  declare items: OrderItem[];
 
   @Column({ type: DataType.FLOAT, allowNull: false })
-  total: number;
+  declare total: number;
 
   @Column({ type: DataType.STRING, allowNull: false })
-  source: string; // 'ecom' | 'pos'
+  declare source: string; // 'ecom' | 'pos'
 }
