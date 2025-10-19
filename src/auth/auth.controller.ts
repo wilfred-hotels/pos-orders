@@ -1,4 +1,5 @@
 import { Body, Controller, Post, Req, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
 import { RevokedToken } from './revoked-token.entity';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -64,7 +65,7 @@ export class AuthController {
     if (!token) throw new BadRequestException('No token provided');
 
     // decode token to get exp and sub
-    const decoded: any = (require('jsonwebtoken') as any).decode(token) as any;
+  const decoded: any = jwt.decode(token) as any;
     const exp = decoded?.exp ? new Date(decoded.exp * 1000) : undefined;
     const sub = decoded?.sub;
 

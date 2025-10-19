@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  ParseIntPipe,
   Post,
   UseGuards,
   Logger,
@@ -52,7 +51,8 @@ export class OrdersController {
     const items = (cart.items || []).map((it: any) => ({ productId: it.productId, quantity: it.quantity }));
     if (!items || items.length === 0) throw new ForbiddenException('Cart is empty');
 
-    const order = await this.ordersService.create(items, 'ecom');
+  // persist the requester id on the order so we know who placed it
+  const order = await this.ordersService.create(items, 'ecom', requesterId);
 
     // mark cart as confirmed
     try {
