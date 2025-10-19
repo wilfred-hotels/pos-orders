@@ -24,6 +24,10 @@ async function run() {
     cfg.user = process.env.DB_USER;
     cfg.password = process.env.DB_PASS ?? undefined;
     cfg.database = process.env.DB_NAME ?? 'pos-orders';
+    // enable ssl when explicitly requested or when running in production
+    if ((process.env.DB_SSL ?? 'true') !== 'false' || process.env.NODE_ENV === 'production') {
+      cfg.ssl = { rejectUnauthorized: false };
+    }
   } else if (process.env.DATABASE_URL) {
     // production or explicit full URL fallback
     const dbUrl = process.env.DATABASE_URL.replace(/^'+|'+$/g, '').replace(/^"+|"+$/g, '');
@@ -33,12 +37,18 @@ async function run() {
     cfg.user = u.username;
     cfg.password = u.password && u.password.length > 0 ? u.password : undefined;
     cfg.database = u.pathname ? u.pathname.replace(/^\//, '') : 'pos-orders';
+    if ((process.env.DB_SSL ?? 'true') !== 'false' || process.env.NODE_ENV === 'production') {
+      cfg.ssl = { rejectUnauthorized: false };
+    }
   } else {
     cfg.host = 'localhost';
     cfg.port = 5432;
     cfg.user = process.env.DB_USER ?? 'wilfred';
     cfg.password = process.env.DB_PASS ?? undefined;
     cfg.database = process.env.DB_NAME ?? 'pos-orders';
+    if ((process.env.DB_SSL ?? 'true') !== 'false' || process.env.NODE_ENV === 'production') {
+      cfg.ssl = { rejectUnauthorized: false };
+    }
   }
 
   const client = new Client(cfg);
