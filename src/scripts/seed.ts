@@ -24,6 +24,7 @@ async function run() {
   // For development prefer DB_* env vars; fall back to DATABASE_URL otherwise
   const isDev = process.env.NODE_ENV === 'development' || Boolean(process.env.DB_USER);
   const databaseUrl = process.env.DATABASE_URL;
+  const ssl = process.env.DB_SSL === 'false' ? undefined : { require: true, rejectUnauthorized: false };
   const sequelize = isDev
     ? new Sequelize({
         dialect: 'postgres',
@@ -40,6 +41,7 @@ async function run() {
         dialect: 'postgres',
         models: [Hotel, User, Product, Order, OrderItem, Cart, CartItem, RevokedToken],
         logging: false,
+        dialectOptions: ssl ? { ssl } : {},
       } as any)
     : new Sequelize({
         dialect: 'postgres',
