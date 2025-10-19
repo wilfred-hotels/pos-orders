@@ -2,13 +2,22 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { Product } from '../entities/product.entity';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class OrdersService {
+  private generateCode(len = 4) {
+    // default length changed to 5
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let out = '';
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
   // items: { productId, quantity }[]
   async create(
     items: { productId: number; quantity: number }[],
     source: 'ecom' | 'pos' = 'ecom',
+    userId?: string,
   ) {
     if (!items || items.length === 0) throw new BadRequestException('No items');
 
@@ -27,9 +36,21 @@ export class OrdersService {
         total += prod.price * it.quantity;
       }
 
-      const order = await Order.create({ total, source } as any, {
+      const order = await Order.create({ total, source, status: 'not paid', userId: userId ?? null } as any, {
         transaction: t,
       });
+
+      // if created, try to assign a short memorable code (unique)
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = this.generateCode(5);
+        try {
+          order.code = code;
+          await order.save({ transaction: t });
+          break;
+        } catch (e) {
+          // collision or db error, try again
+        }
+      }
 
       for (const it of items) {
         await OrderItem.create(
@@ -48,7 +69,7 @@ export class OrdersService {
       }
 
       if (t) await t.commit();
-      return Order.findByPk(order.id, { include: [{ model: OrderItem, include: [Product] }] });
+      return Order.findByPk(order.id, { include: [{ model: OrderItem, include: [Product] }, { model: (require('../auth/user.entity').User) }] });
     } catch (err) {
       if (t) await t.rollback();
       throw err;
@@ -56,10 +77,12 @@ export class OrdersService {
   }
 
   async list() {
-    return Order.findAll({ include: [{ model: OrderItem, include: [Product] }] });
+    return Order.findAll({ include: [{ model: OrderItem, include: [Product] }, { model: (require('../auth/user.entity').User) }] });
   }
 
+  // manual assign/bulk endpoints removed — codes are auto-generated at order creation
+
   async get(id: string) {
-    return Order.findByPk(id, { include: [{ model: OrderItem, include: [Product] }] });
+    return Order.findByPk(id, { include: [{ model: OrderItem, include: [Product] }, { model: (require('../auth/user.entity').User) }] });
   }
 }

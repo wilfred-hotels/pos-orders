@@ -20,7 +20,6 @@ export class CreateProductDto {
   stock: number;
 
   @IsOptional()
-  @Type(() => String)
   @IsString()
   hotelId?: string;
 }

@@ -1,23 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Product } from '../entities/product.entity';
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
   constructor(@InjectModel(Product) private productModel: typeof Product) {}
 
   findAll() {
     return this.productModel.findAll();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const p = await this.productModel.findByPk(id);
     if (!p) throw new NotFoundException('Product not found');
     return p;
   }
 
   async decreaseStock(id: number, qty: number) {
-    const p = await this.findOne(id);
+    const p = await this.findOne(id as any);
     if (p.stock < qty) throw new Error('Insufficient stock');
     p.stock -= qty;
     await p.save();
@@ -29,7 +30,7 @@ export class ProductsService {
     description?: string;
     price: number;
     stock: number;
-    hotelId?: number;
+    hotelId?: string;
   }) {
     const p = await this.productModel.create({
       name: dto.name,
@@ -42,7 +43,7 @@ export class ProductsService {
   }
 
   async update(
-    id: number,
+    id: string,
     dto: {
       name?: string;
       description?: string;
@@ -50,12 +51,27 @@ export class ProductsService {
       stock?: number;
     },
   ) {
-    const p = await this.findOne(id);
-    if (dto.name !== undefined) p.name = dto.name;
-    if (dto.description !== undefined) p.description = dto.description;
-    if (dto.price !== undefined) p.price = dto.price;
-    if (dto.stock !== undefined) p.stock = dto.stock;
+    const p = await this.findOne(id as any);
+    // Log before change
+    try { this.logger.debug(`Before update product=${JSON.stringify(p?.toJSON ? p.toJSON() : p)}`); } catch (e) {}
+
+    const assigned: any = {};
+    if (dto.name !== undefined) { p.name = dto.name; assigned.name = dto.name; }
+    if (dto.description !== undefined) { p.description = dto.description; assigned.description = dto.description; }
+    if (dto.price !== undefined) { p.price = Number(dto.price); assigned.price = Number(dto.price); }
+    if (dto.stock !== undefined) { p.stock = Number(dto.stock); assigned.stock = Number(dto.stock); }
+
+    try { this.logger.debug(`Assigning fields: ${JSON.stringify(assigned)}`); } catch (e) {}
+
     await p.save();
+
+    try { this.logger.debug(`After update product=${JSON.stringify(p?.toJSON ? p.toJSON() : p)}`); } catch (e) {}
     return p;
+  }
+
+  async remove(id: string) {
+    const p = await this.findOne(id as any);
+    await p.destroy();
+    return { success: true };
   }
 }

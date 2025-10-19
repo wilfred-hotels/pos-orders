@@ -8,6 +8,8 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  Delete,
+  Logger,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -17,6 +19,7 @@ import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('products')
 export class ProductsController {
+  private readonly logger = new Logger(ProductsController.name);
   constructor(private readonly productsService: ProductsService) {}
 
 
@@ -28,7 +31,7 @@ export class ProductsController {
   @Get(':id')
   @UseGuards(RolesGuard)
   async findOne(@Param('id') id: string) {
-    return this.productsService.findOne(+id);
+    return this.productsService.findOne(id);
   }
 
   @Post()
@@ -41,7 +44,7 @@ export class ProductsController {
     if (user && user.role === 'manager') {
       if (!user.hotelId)
         throw new ForbiddenException('Manager must belong to a hotel');
-      dto.hotelId = String(user.hotelId);
+  dto.hotelId = String(user.hotelId);
     }
     return this.productsService.create(dto as any);
   }
@@ -54,14 +57,30 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @Req() req: any,
   ) {
+  try { this.logger.debug(`ProductsController.update received body: ${JSON.stringify((req as any).body)}`); } catch (e) {}
     const user = req.user as { role?: string; hotelId?: number } | undefined;
     if (user && user.role === 'manager') {
-      const existing = await this.productsService.findOne(+id);
-      if (existing.hotelId !== user.hotelId)
+  const existing = await this.productsService.findOne(id);
+      if (existing.hotelId !== String(user.hotelId))
         throw new ForbiddenException(
           'Cannot modify products from another hotel',
         );
     }
-    return this.productsService.update(+id, dto as any);
+    const result = await this.productsService.update(id, dto as any);
+    try { this.logger.debug(`ProductsController.update result: ${JSON.stringify(result?.toJSON ? result.toJSON() : result)}`); } catch (e) {}
+    return result;
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('manager', 'admin')
+  @Delete(':id')
+  async remove(@Param('id') id: string, @Req() req: any) {
+    const user = req.user as { role?: string; hotelId?: number } | undefined;
+    if (user && user.role === 'manager') {
+  const existing = await this.productsService.findOne(id);
+      if (existing.hotelId !== String(user.hotelId))
+        throw new ForbiddenException('Cannot delete products from another hotel');
+    }
+  return this.productsService.remove(id);
   }
 }

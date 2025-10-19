@@ -2,7 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 // morgan for HTTP logging
-const morgan = require('morgan');
+import morgan from 'morgan';
+import * as jwt from 'jsonwebtoken';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,7 +18,6 @@ async function bootstrap() {
           const token = authHeader.split(' ')[1];
           if (token) {
             try {
-              const jwt = require('jsonwebtoken');
               const secret = process.env.JWT_SECRET ?? 'change-me';
               // verify token but don't throw for invalid/expired tokens — just don't attach
               const payload = jwt.verify(token, secret) as any;
