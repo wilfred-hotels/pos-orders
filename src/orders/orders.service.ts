@@ -18,6 +18,7 @@ export class OrdersService {
     items: { productId: number; quantity: number }[],
     source: 'ecom' | 'pos' = 'ecom',
     userId?: string,
+    cartId?: string,
   ) {
     if (!items || items.length === 0) throw new BadRequestException('No items');
 
@@ -36,7 +37,8 @@ export class OrdersService {
         total += prod.price * it.quantity;
       }
 
-      const order = await Order.create({ total, source, status: 'not paid', userId: userId ?? null } as any, {
+      // mark the order as payment-pending until the payment callback marks it paid
+      const order = await Order.create({ total, source, status: 'pending', userId: userId ?? null, cartId: cartId ?? null } as any, {
         transaction: t,
       });
 

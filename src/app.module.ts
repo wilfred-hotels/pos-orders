@@ -3,11 +3,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PosModule } from './pos/pos.module';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Product } from './entities/product.entity';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
+import { Payment } from './payments/payment.entity';
 import { Hotel } from './entities/hotel.entity';
 import { User } from './auth/user.entity';
 import { Cart } from './entities/cart.entity';
@@ -43,7 +45,7 @@ import { AuthModule } from './auth/auth.module';
             username,
             password,
             database,
-            models: [Product, Order, OrderItem, Hotel, User, Cart, CartItem, RevokedToken],
+            models: [Product, Order, OrderItem, Payment, Hotel, User, Cart, CartItem, RevokedToken],
             autoLoadModels: true,
             synchronize: true,
             logging: false,
@@ -62,19 +64,20 @@ import { AuthModule } from './auth/auth.module';
         username: process.env.DB_USER ?? 'wilfred',
         password: process.env.DB_PASS ?? 'williy8615.',
         database: process.env.DB_NAME ?? 'pos-orders',
-        models: [Product, Order, OrderItem, Hotel, User, Cart, CartItem, RevokedToken],
+        models: [Product, Order, OrderItem, Payment, Hotel, User, Cart, CartItem, RevokedToken],
         autoLoadModels: true,
         synchronize: true,
         logging: false,
         dialectOptions: process.env.DB_SSL === 'false' ? {} : { ssl: { require: true, rejectUnauthorized: false } },
       });
     })(),
-  ProductsModule,
-  OrdersModule,
-  PosModule,
-  AuthModule,
-  HotelsModule,
-  CartModule,
+    ProductsModule,
+    OrdersModule,
+    PosModule,
+    PaymentsModule,
+    AuthModule,
+    HotelsModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
