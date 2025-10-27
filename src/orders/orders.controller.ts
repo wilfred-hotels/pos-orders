@@ -52,7 +52,7 @@ export class OrdersController {
     if (!items || items.length === 0) throw new ForbiddenException('Cart is empty');
 
   // persist the requester id on the order so we know who placed it
-  const order = await this.ordersService.create(items, 'ecom', requesterId);
+  const order = await this.ordersService.create(items, 'ecom', requesterId, cartId);
 
     // mark cart as confirmed
     try {
