@@ -2,9 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as Handlebars from 'handlebars';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-// We'll dynamically import puppeteer at runtime so the code can compile in environments
-// where the dependency is not installed (tests, CI without browser). This lets us
-// provide graceful fallbacks and clearer errors.
 
 @Injectable()
 export class ReceiptsService {
@@ -16,36 +13,17 @@ export class ReceiptsService {
     return Handlebars.compile(raw);
   }
 
-  // order is a Sequelize model instance or plain object
-  async renderReceiptPdf(order: any) {
+  // Return an object describing the generated content. We no longer rely on
+  // puppeteer in order to avoid the heavy dependency in deployments. Consumers
+  // should handle the 'html' fallback. The returned shape is { type, data }.
+  async renderReceiptPdf(order: any): Promise<{ type: 'pdf' | 'html'; data: Buffer }> {
     const compile = await this.loadTemplate();
-
     const data = this.normalizeOrder(order);
     const html = compile(data);
 
-    // Dynamically import puppeteer to avoid static compile-time dependency
-    let puppeteer: any;
-    try {
-      puppeteer = (await import('puppeteer')).default ?? (await import('puppeteer'));
-    } catch (e) {
-      this.logger.error('Puppeteer not available: ' + (e as any)?.message);
-      throw new Error('PDF generation requires puppeteer to be installed in the runtime environment');
-    }
-
-    // Launch puppeteer headless and render PDF
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      const pdf = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20mm', bottom: '20mm', left: '12mm', right: '12mm' } });
-      return pdf;
-    } finally {
-      try {
-        await browser.close();
-      } catch (e) {
-        this.logger.warn('Failed to close browser: ' + (e as any)?.message);
-      }
-    }
+    // Return HTML fallback as Buffer so callers can send it directly when PDF
+    // rendering is not available in the environment.
+    return { type: 'html', data: Buffer.from(html, 'utf8') };
   }
 
   private normalizeOrder(order: any) {

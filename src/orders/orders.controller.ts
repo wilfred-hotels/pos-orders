@@ -93,13 +93,22 @@ export class OrdersController {
 
     // receiptsService may be undefined in some test contexts, guard it
     if (!this.receiptsService || !this.receiptsService.renderReceiptPdf) {
-      // fallback: return 501
       return res.status(501).json({ message: 'Receipt generation not available' });
     }
 
-    const pdf = await this.receiptsService.renderReceiptPdf(order);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="receipt-${order.code || order.id}.pdf"`);
-    res.send(pdf);
+    const out = await this.receiptsService.renderReceiptPdf(order);
+    if (!out) return res.status(500).json({ message: 'Failed to generate receipt' });
+
+    if (out.type === 'pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="receipt-${order.code || order.id}.pdf"`);
+      res.send(out.data);
+    } else if (out.type === 'html') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="receipt-${order.code || order.id}.html"`);
+      res.send(out.data);
+    } else {
+      res.status(500).json({ message: 'Unsupported receipt format' });
+    }
   }
 }
