@@ -37,8 +37,8 @@ export class OrdersService {
         total += prod.price * it.quantity;
       }
 
-      // mark the order as payment-pending until the payment callback marks it paid
-      const order = await Order.create({ total, source, status: 'pending', userId: userId ?? null, cartId: cartId ?? null } as any, {
+      // create the order with default 'not paid' status; it will be marked 'pending' when payment is initiated
+      const order = await Order.create({ total, source, status: 'not paid', userId: userId ?? null, cartId: cartId ?? null } as any, {
         transaction: t,
       });
 
@@ -80,6 +80,11 @@ export class OrdersService {
 
   async list() {
     return Order.findAll({ include: [{ model: OrderItem, include: [Product] }, { model: (require('../auth/user.entity').User) }] });
+  }
+
+  async findByCode(code: string) {
+    if (!code) return null;
+    return Order.findOne({ where: { code }, include: [{ model: OrderItem, include: [Product] }, { model: (require('../auth/user.entity').User) }] });
   }
 
   // manual assign/bulk endpoints removed — codes are auto-generated at order creation

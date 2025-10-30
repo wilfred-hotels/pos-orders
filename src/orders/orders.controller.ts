@@ -8,8 +8,12 @@ import {
   Logger,
   Req,
   ForbiddenException,
+  Res,
+  NotFoundException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OrdersService } from './orders.service';
+import { ReceiptsService } from './receipts.service';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CartService } from '../cart/cart.service';
@@ -18,7 +22,7 @@ import { CartService } from '../cart/cart.service';
 @UseGuards(RolesGuard)
 export class OrdersController {
   private readonly logger = new Logger(OrdersController.name);
-  constructor(private ordersService: OrdersService, private cartService: CartService) { }
+  constructor(private ordersService: OrdersService, private cartService: CartService, private receiptsService?: ReceiptsService) { }
 
   @Post('checkout')
   @Roles('user', 'admin')
@@ -73,5 +77,29 @@ export class OrdersController {
   @Get(':id')
   get(@Param('id') id: string) {
     return this.ordersService.get(id);
+  }
+
+  @Get('code/:code')
+  async getByCode(@Param('code') code: string) {
+    const order = await this.ordersService.findByCode(code);
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
+  @Get(':id/receipt')
+  async receipt(@Param('id') id: string, @Res() res: Response) {
+    const order = await this.ordersService.get(id);
+    if (!order) throw new NotFoundException('Order not found');
+
+    // receiptsService may be undefined in some test contexts, guard it
+    if (!this.receiptsService || !this.receiptsService.renderReceiptPdf) {
+      // fallback: return 501
+      return res.status(501).json({ message: 'Receipt generation not available' });
+    }
+
+    const pdf = await this.receiptsService.renderReceiptPdf(order);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="receipt-${order.code || order.id}.pdf"`);
+    res.send(pdf);
   }
 }
