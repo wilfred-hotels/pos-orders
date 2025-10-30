@@ -47,7 +47,10 @@ async function bootstrap() {
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: 'Content-Type, Accept, Authorization',
-   });
+    credentials: true,
+    optionsSuccessStatus: 200,
+    exposedHeaders: ['Content-Disposition'],
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.listen(process.env.PORT ?? 5000);
 }
