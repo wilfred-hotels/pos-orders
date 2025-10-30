@@ -10,7 +10,7 @@ export class Order extends Model<Order> {
   @Column({ type: DataType.STRING, allowNull: true, unique: true })
   declare code?: string;
 
-  @Column({ type: DataType.ENUM('paid', 'not paid', 'canceled', 'pending'), allowNull: false, defaultValue: 'pending' })
+  @Column({ type: DataType.ENUM('paid', 'not paid', 'canceled', 'pending'), allowNull: false, defaultValue: 'not paid' })
   declare status: 'paid' | 'not paid' | 'canceled' | 'pending';
 
   @Column({ type: DataType.UUID, allowNull: true })

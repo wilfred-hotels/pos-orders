@@ -1,0 +1,14 @@
+<html>
+  <body style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial; color:#333">
+    <h2>Receipt for Order {{code}}</h2>
+    <p>Hi {{user.name}},</p>
+    <p>Thanks for your order. Summary below:</p>
+    <ul>
+      {{#each items}}
+        <li>{{qty}} x {{name}} — {{total}}</li>
+      {{/each}}
+    </ul>
+    <p><strong>Total:</strong> {{total}}</p>
+    <p>If you have questions, reply to this email.</p>
+  </body>
+</html>

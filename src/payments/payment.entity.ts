@@ -51,13 +51,6 @@ export class Payment extends Model<Payment> {
   @BelongsTo(() => Hotel)
   declare hotel?: Hotel;
 
-  @ForeignKey(() => Cart)
-  @Column({ type: DataType.UUID, allowNull: false })
-  declare cartId?: string;
-
-  @BelongsTo(() => Cart)
-  declare cart?: Cart;
-
   @CreatedAt
   declare createdAt: Date;
 
