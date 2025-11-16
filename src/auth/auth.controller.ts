@@ -1,8 +1,10 @@
 import { Body, Controller, Post, Req, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import * as jwt from 'jsonwebtoken';
 import { RevokedToken } from './revoked-token.entity';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { SuperAdminLoginDto } from './dto/super-admin-login.dto';
 
 interface RegisterBody {
   username: string;
@@ -11,12 +13,66 @@ interface RegisterBody {
   hotelId?: string;
 }
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
   constructor(private authService: AuthService) { }
 
+  @Post('super-admin/login')
+  @ApiOperation({ summary: 'Super Admin Login' })
+  @ApiBody({ type: SuperAdminLoginDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Super Admin login successful',
+    schema: {
+      example: {
+        status: 'ok',
+        user: {
+          id: 'user-uuid',
+          username: 'superadmin',
+          role: 'super_admin'
+        },
+        access_token: 'jwt.token',
+        refresh_token: 'jwt.refresh'
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials or not a super admin' })
+  async superAdminLogin(@Req() req: any, @Body() body: SuperAdminLoginDto) {
+    const ip = req.ip || req.headers?.['x-forwarded-for'] || req.connection?.remoteAddress;
+    this.logger.debug(`POST /auth/super-admin/login from ${ip} - username=${body.username}`);
+    
+    const user = await this.authService.validateSuperAdmin(body.username, body.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials or not a super admin');
+    }
+
+    const tokens = await this.authService.loginSuperAdmin(user);
+    const userInfo = { id: user.id, username: user.username, role: user.role };
+    return { status: 'ok', user: userInfo, ...tokens };
+  }
+
   @Post('login')
+  @ApiOperation({ summary: 'Login for regular users and staff' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Login result', 
+    schema: { 
+      example: { 
+        status: 'ok', 
+        user: { 
+          id: 'user-uuid', 
+          username: 'alice', 
+          role: 'manager', 
+          hotelId: 'hotel-uuid' 
+        }, 
+        access_token: 'jwt.token', 
+        refresh_token: 'jwt.refresh' 
+      } 
+    } 
+  })
   async login(@Req() req: any, @Body() body: LoginDto) {
     // debug log: route, ip, username (mask password)
     const ip = req.ip || req.headers?.['x-forwarded-for'] || req.connection?.remoteAddress;
@@ -35,6 +91,9 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiBody({ schema: { example: { refresh_token: 'jwt.refresh' } } })
+  @ApiResponse({ status: 200, description: 'New tokens', schema: { example: { status: 'ok', access_token: 'jwt.token', refresh_token: 'jwt.refresh' } } })
   async refresh(@Body() body: { refresh_token?: string }) {
     const token = body?.refresh_token ?? null;
     if (!token) throw new BadRequestException('No refresh token provided');
@@ -58,6 +117,9 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiOperation({ summary: 'Logout (revoke token)' })
+  @ApiBody({ schema: { example: { token: 'jwt.token' } } })
+  @ApiResponse({ status: 200, description: 'Logout result', schema: { example: { status: 'ok' } } })
   async logout(@Req() req: any, @Body() body?: { token?: string }) {
     // Accept token in body or Authorization header
     const header = typeof req.headers?.authorization === 'string' ? req.headers.authorization : null;
@@ -74,6 +136,9 @@ export class AuthController {
   }
 
   @Post('register')
+  @ApiOperation({ summary: 'Register a new user (admin can create users for their hotel)' })
+  @ApiBody({ schema: { example: { username: 'newuser', password: 'secret', role: 'manager', hotelId: 'hotel-uuid' } } })
+  @ApiResponse({ status: 201, description: 'Created user', schema: { example: { status: 'ok', user: { id: 'user-uuid', username: 'newuser', role: 'manager', hotelId: 'hotel-uuid' } } } })
   async register(@Req() req: any, @Body() body: RegisterBody) {
     const { username, password, role, hotelId } = body;
     this.logger.debug(`body: ${JSON.stringify(body)}`);

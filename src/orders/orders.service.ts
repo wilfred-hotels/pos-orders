@@ -2,10 +2,13 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { Product } from '../entities/product.entity';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
+import { CatalogProduct } from '../entities/catalog-product.entity';
+import { FulfillmentService } from '../fulfillment/fulfillment.service';
 import { Op } from 'sequelize';
 
 @Injectable()
 export class OrdersService {
+  constructor(private readonly fulfillmentService?: FulfillmentService) {}
   private generateCode(len = 4) {
     // default length changed to 5
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -91,5 +94,56 @@ export class OrdersService {
 
   async get(id: string) {
     return Order.findByPk(id, { include: [{ model: OrderItem, include: [Product] }, { model: (require('../auth/user.entity').User) }] });
+  }
+
+  // Create an order for a catalog product (guest or authenticated). Does not touch product stock.
+  async createCatalogOrder(
+    catalogProductId: string,
+    quantity = 1,
+    contact?: any,
+    userId?: string,
+    guestId?:string,
+  ) {
+    const catalog = await CatalogProduct.findByPk(catalogProductId);
+    if (!catalog) throw new BadRequestException('Catalog product not found');
+
+  const catalogPrice = Number((catalog as any).finalPriceCents ?? (catalog as any).initialPriceCents) || 0;
+  const total = (catalogPrice) / 100 * (quantity || 1);
+
+    const order = await Order.create({
+      total,
+      source: 'catalog',
+      status: 'not paid',
+      guestId:guestId ?? null,
+      userId: userId ?? null,
+      cartId: null,
+      catalogProductId,
+      contact: contact ?? null,
+    } as any);
+
+    // assign a short code
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = this.generateCode(5);
+      try {
+        order.code = code;
+        await order.save();
+        break;
+      } catch (e) {
+        // try again
+      }
+    }
+
+    const created = await Order.findByPk(order.id);
+
+    // Try to assign fulfillment immediately (best-effort) using injected FulfillmentService
+    try {
+      if (this.fulfillmentService && created && (created as any).id) {
+        await this.fulfillmentService.assignFulfillment((created as any).id);
+      }
+    } catch (e) {
+      // best-effort: assignment failures should not block order creation
+    }
+
+    return created;
   }
 }

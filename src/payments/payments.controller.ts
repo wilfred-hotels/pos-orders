@@ -5,7 +5,13 @@ import { MpesaService } from './mpesa.service';
 import { Order } from '../entities/order.entity';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 
+/**
+ * Payments endpoints: create payments, initiate MPESA STK push, handle callbacks,
+ * record cash payments (admin), and provide statistics.
+ */
+@ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
@@ -16,6 +22,8 @@ export class PaymentsController {
   ) { }
 
   @Post()
+  @ApiOperation({ summary: 'Create a payment record (internal)' })
+  @ApiResponse({ status: 201, description: 'Payment created' })
   async create(@Body() createDto: CreatePaymentDto) {
     this.logger.debug('Create payment request', createDto);
     return this.paymentsService.create(createDto);
@@ -23,6 +31,9 @@ export class PaymentsController {
 
   @Post('mpesa/initiate')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Initiate M-Pesa STK push (returns provider response)' })
+  @ApiBody({ schema: { example: { phone: '+2547...', amount: '1000', orderId: '<order_uuid>' } } })
+  @ApiResponse({ status: 200, description: 'STK push initiated', schema: { example: { message: 'STK push initiated', data: { CheckoutRequestID: 'ws_CO_12345' }, pendingPaymentId: 'payment-uuid' } } })
   async initiateMpesa(@Body() body: any) {
     this.logger.debug('Mpesa initiate request', body);
 
@@ -102,6 +113,8 @@ export class PaymentsController {
 
   @Post('mpesa/callback')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'M-Pesa callback endpoint (provider calls this)' })
+  @ApiResponse({ status: 200, description: 'Acknowledged' })
   async mpesaCallback(@Body() payload: any) {
     this.logger.debug('Mpesa callback received', payload);
 
@@ -122,6 +135,7 @@ export class PaymentsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get payment by id' })
   async get(@Param('id') id: string) {
     return this.paymentsService.findById(id);
   }
@@ -130,6 +144,8 @@ export class PaymentsController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles('manager', 'admin')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Query payments (admin/manager only)' })
   async query(
     @Query('hotelId') hotelId?: string,
     @Query('status') status?: string,
@@ -150,6 +166,10 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Record a cash payment and mark order paid (admin only)' })
+  @ApiBody({ schema: { example: { orderId: '<order_uuid>', amount: '1000', note: 'Paid in cash' } } })
+  @ApiResponse({ status: 200, description: 'Recorded cash payment', schema: { example: { success: true, paymentId: 'payment-uuid' } } })
   async recordCashPayment(@Body() body: { orderId: string; amount: string; userId?: string; hotelId?: string; note?: string }) {
     const { orderId, amount, userId, hotelId, note } = body || {};
     if (!orderId || !amount) throw new BadRequestException('orderId and amount are required');
@@ -183,6 +203,9 @@ export class PaymentsController {
   @Get('stats/summary')
   @UseGuards(RolesGuard)
   @Roles('manager', 'admin')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Get payments summary (counts + revenue) optionally scoped to hotel' })
+  @ApiResponse({ status: 200, description: 'Payments summary', schema: { example: { total: 123, pending: 5, completed: 118, revenueCents: 123450 } } })
   async statsSummary(@Query('hotelId') hotelId?: string) {
     return this.paymentsService.summaryCounts(hotelId);
   }
@@ -190,6 +213,8 @@ export class PaymentsController {
   @Get('stats/by-provider')
   @UseGuards(RolesGuard)
   @Roles('manager', 'admin')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Aggregated stats by provider' })
   async statsByProvider() {
     return this.paymentsService.byProviderStats();
   }
@@ -197,6 +222,8 @@ export class PaymentsController {
   @Get('stats/revenue')
   @UseGuards(RolesGuard)
   @Roles('manager', 'admin')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Revenue series by interval (daily|weekly|monthly)' })
   async statsRevenue(@Param('interval') intervalParam: string, @Body() body?: any) {
     // Accept query params via body or query is not ideal in this controller helper; accept via body for simplicity
     const interval = (body?.interval as 'daily' | 'weekly' | 'monthly') || (intervalParam as any) || 'daily';
@@ -208,6 +235,8 @@ export class PaymentsController {
   @Get('stats/transactions-by-day')
   @UseGuards(RolesGuard)
   @Roles('manager', 'admin')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Transaction counts for a specific day' })
   async transactionsByDay(@Query('date') date?: string) {
     return this.paymentsService.transactionCountsForDate(date);
   }

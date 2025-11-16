@@ -10,6 +10,41 @@ import { Hotel } from '../entities/hotel.entity';
 export class AuthService {
   constructor(private usersService: UsersService) {}
 
+  async validateSuperAdmin(username: string, pass: string) {
+    const user = await this.usersService.findByUsername(username);
+    if (!user || user.role !== 'super_admin') return null;
+    
+    const ok = await bcrypt.compare(pass, user.password);
+    if (!ok) return null;
+    
+    return user;
+  }
+
+  async loginSuperAdmin(user: User) {
+    if (user.role !== 'super_admin') {
+      throw new UnauthorizedException('Only super admin can use this endpoint');
+    }
+
+    const payload = {
+      username: user.username,
+      sub: user.id,
+      role: user.role
+      // Intentionally not including hotelId to prevent hotel access
+    };
+
+      const accessToken = (jwt as any).sign(payload, process.env.JWT_SECRET ?? 'change-me', {
+        expiresIn: process.env.JWT_EXPIRES_IN ?? '1h',
+      });
+
+      const refreshToken = (jwt as any).sign(
+      { sub: payload.sub },
+      process.env.JWT_REFRESH_SECRET ?? (process.env.JWT_SECRET ?? 'change-me') + '-refresh',
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '1d' },
+    );
+
+    return { access_token: accessToken, refresh_token: refreshToken };
+  }
+
   async validateUser(username: string, pass: string, hotelId?: string) {
     const user = await this.usersService.findByUsername(username, hotelId);
     if (!user) return null;
