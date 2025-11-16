@@ -10,6 +10,7 @@ import {
   ForbiddenException,
   Res,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { OrdersService } from './orders.service';
@@ -17,7 +18,13 @@ import { ReceiptsService } from './receipts.service';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CartService } from '../cart/cart.service';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+/**
+ * Orders endpoints (protected). Handles normal checkout, retrieval and receipts.
+ */
+@ApiTags('Orders')
+@ApiBearerAuth('jwt')
 @Controller('orders')
 @UseGuards(RolesGuard)
 export class OrdersController {
@@ -26,6 +33,8 @@ export class OrdersController {
 
   @Post('checkout')
   @Roles('user', 'admin')
+  @ApiOperation({ summary: 'Checkout a cart and create an order (authenticated)' })
+  @ApiResponse({ status: 201, description: 'Order created', schema: { example: { id: 'order-uuid', code: 'ABCD1', total: 1200, status: 'not paid' } } })
   async checkout(
     @Req() req: any,
     @Body() body: { cartId: string; userId: string },
@@ -69,12 +78,53 @@ export class OrdersController {
     return order;
   }
 
+  @Post('guest-checkout')
+  @ApiOperation({ summary: 'Guest checkout using cartId and guestId (minimal public flow)' })
+  @ApiResponse({ status: 201, description: 'Order created (guest)', schema: { example: { id: 'order-uuid', total: 1200, status: 'not paid', contact: { name: 'Guest', phone: '+2547...' } } } })
+  async guestCheckout(@Body() body: import('./dto/guest-checkout.dto').GuestCheckoutDto) {
+    const { cartId, guestId, contact } = body || {};
+    if (!cartId || !guestId) throw new BadRequestException('cartId and guestId are required');
+
+    // fetch cart
+    const cart = await this.cartService.getCartById(cartId);
+    if (!cart) throw new NotFoundException('Cart not found');
+    if (cart.userId !== guestId) throw new ForbiddenException('Cart does not belong to guest');
+
+    const items = (cart.items || []).map((it: any) => ({ productId: it.productId, quantity: it.quantity }));
+    if (!items || items.length === 0) throw new BadRequestException('Cart is empty');
+
+    // Create order without an authenticated user (userId = null). Order will keep cartId for traceability.
+  const order = await this.ordersService.create(items, 'ecom', undefined, cartId);
+
+    // attach guest contact info for later use (phone/email) and save
+    try {
+      (order as any).contact = { guestId, ...(contact ?? {}) };
+      await (order as any).save();
+    } catch (e) {
+      // non-fatal
+    }
+
+    // mark cart confirmed so it isn't reused
+    try {
+      cart.status = 'confirmed';
+      await cart.save();
+    } catch (e) {
+      // swallow
+    }
+
+    return order;
+  }
+
   @Get()
+  @ApiOperation({ summary: 'List all orders (admin)' })
+  @ApiResponse({ status: 200, description: 'Array of orders', schema: { example: [{ id: 'order-uuid', code: 'ABCD1', total: 1200, status: 'not paid' }] } })
   list() {
     return this.ordersService.list();
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get order by id' })
+  @ApiResponse({ status: 200, description: 'Order object', schema: { example: { id: 'order-uuid', code: 'ABCD1', total: 1200, status: 'not paid', items: [{ productId: 1, quantity: 2 }] } } })
   get(@Param('id') id: string) {
     return this.ordersService.get(id);
   }
@@ -87,6 +137,8 @@ export class OrdersController {
   }
 
   @Get(':id/receipt')
+  @ApiOperation({ summary: 'Download order receipt (PDF or HTML)' })
+  @ApiResponse({ status: 200, description: 'Receipt file' })
   async receipt(@Param('id') id: string, @Res() res: Response) {
     const order = await this.ordersService.get(id);
     if (!order) throw new NotFoundException('Order not found');

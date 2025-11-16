@@ -1,7 +1,9 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProductsModule } from './products/products.module';
+import { CatalogModule } from './catalog/catalog.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PosModule } from './pos/pos.module';
@@ -10,11 +12,15 @@ import { Product } from './entities/product.entity';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Payment } from './payments/payment.entity';
+import { CatalogProduct } from './entities/catalog-product.entity';
+import { CatalogProductSource } from './entities/catalog-product-source.entity';
+import { OrderFulfillment } from './entities/order-fulfillment.entity';
 import { Hotel } from './entities/hotel.entity';
 import { User } from './auth/user.entity';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { CartModule } from './cart/cart.module';
+import { GuestsModule } from './guests/guests.module';
 import { RevokedToken } from './auth/revoked-token.entity';
 import { LoggingMiddleware } from './common/logging.middleware';
 import { HotelsModule } from './hotels/hotels.module';
@@ -22,6 +28,7 @@ import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     (() => {
       // prefer a full DATABASE_URL when available
       const databaseUrl = process.env.DATABASE_URL;
@@ -45,7 +52,7 @@ import { AuthModule } from './auth/auth.module';
             username,
             password,
             database,
-            models: [Product, Order, OrderItem, Payment, Hotel, User, Cart, CartItem, RevokedToken],
+            models: [Product, Order, OrderItem, Payment, Hotel, User, Cart, CartItem, RevokedToken, CatalogProduct, CatalogProductSource, OrderFulfillment],
             autoLoadModels: true,
             synchronize: true,
             logging: false,
@@ -64,20 +71,23 @@ import { AuthModule } from './auth/auth.module';
         username: process.env.DB_USER ?? 'wilfred',
         password: process.env.DB_PASS ?? 'williy8615.',
         database: process.env.DB_NAME ?? 'pos-orders',
-        models: [Product, Order, OrderItem, Payment, Hotel, User, Cart, CartItem, RevokedToken],
+  models: [Product, Order, OrderItem, Payment, Hotel, User, Cart, CartItem, RevokedToken, CatalogProduct, CatalogProductSource, OrderFulfillment],
         autoLoadModels: true,
         synchronize: true,
         logging: false,
         dialectOptions: process.env.DB_SSL === 'false' ? {} : { ssl: { require: true, rejectUnauthorized: false } },
       });
     })(),
-    ProductsModule,
+  ProductsModule,
+  CatalogModule,
+  (require('./fulfillment/fulfillment.module').FulfillmentModule),
     OrdersModule,
     PosModule,
     PaymentsModule,
     AuthModule,
     HotelsModule,
     CartModule,
+    GuestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

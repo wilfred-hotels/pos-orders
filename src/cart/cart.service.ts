@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Cart } from '../entities/cart.entity';
 import { CartItem } from '../entities/cart-item.entity';
 import { Product } from '../entities/product.entity';
+import { OrdersService } from '../orders/orders.service';
 
 @Injectable()
 export class CartService {
@@ -10,6 +11,7 @@ export class CartService {
     @InjectModel(Cart) private cartModel: typeof Cart,
     @InjectModel(CartItem) private cartItemModel: typeof CartItem,
     @InjectModel(Product) private productModel: typeof Product,
+    @Inject(forwardRef(() => OrdersService)) private ordersService?: OrdersService,
   ) {}
 
   async getOrCreateCart(userId: string) {
@@ -55,5 +57,25 @@ export class CartService {
 
   async getCart(userId: string) {
     return this.cartModel.findOne({ where: { userId, status: 'active' }, include: [{ model: CartItem, include: [Product] }] });
+  }
+
+  async checkout(userId: string, opts?: { source?: 'ecom' | 'pos' }) {
+    // get active cart
+    const cart = await this.getOrCreateCart(userId);
+    if (!cart) throw new NotFoundException('No active cart');
+
+    const items = (cart as any).cartItems?.map((it: any) => ({ productId: it.productId, quantity: it.quantity })) || [];
+    if (!items || items.length === 0) throw new BadRequestException('Cart is empty');
+
+    if (!this.ordersService) throw new BadRequestException('Orders service not available');
+
+    // create the order (OrdersService will handle stock reductions)
+    const order = await this.ordersService.create(items, opts?.source ?? 'ecom', userId, cart.id);
+
+    // mark cart as completed
+    cart.status = 'completed';
+    await (cart as any).save();
+
+    return order;
   }
 }
