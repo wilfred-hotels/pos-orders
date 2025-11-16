@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { UsersService } from './users.service';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
-import { User } from './user.entity';
+import { User } from '../entities/user.entity';
 import { DEFAULT_ROLE, AVAILABLE_ROLES } from './roles.const';
 import { Hotel } from '../entities/hotel.entity';
 

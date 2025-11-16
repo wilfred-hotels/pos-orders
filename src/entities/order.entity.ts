@@ -1,6 +1,6 @@
 import { Column, DataType, Model, Table, HasMany, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { OrderItem } from './order-item.entity';
-import { User } from '../auth/user.entity';
+import { User } from './user.entity';
 import { CatalogProduct } from './catalog-product.entity';
 
 @Table({ tableName: 'orders', timestamps: true })

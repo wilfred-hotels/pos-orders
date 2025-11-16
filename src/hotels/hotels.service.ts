@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { Hotel } from '../entities/hotel.entity';
 import { Product } from '../entities/product.entity';
 import { UsersService } from '../auth/users.service';
-import { User } from '../auth/user.entity';
+import { User } from '../entities/user.entity';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 
