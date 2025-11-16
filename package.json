@@ -26,6 +26,7 @@
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
     "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
     "db:migrate:status": "npx sequelize-cli db:migrate:status",
+  "db:makemigrations": "ts-node -r tsconfig-paths/register src/scripts/generate-migrations.ts",
     "dev": "MORGAN_FORMAT=dev nodemon -L"
   },
   "dependencies": {

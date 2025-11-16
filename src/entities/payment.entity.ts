@@ -1,8 +1,8 @@
 import { Model, Table, Column, DataType, ForeignKey, BelongsTo, CreatedAt, UpdatedAt } from 'sequelize-typescript';
-import { Order } from '../entities/order.entity';
-import { User } from '../auth/user.entity';
-import { Hotel } from '../entities/hotel.entity';
-import { Cart } from '../entities/cart.entity';
+import { Order } from './order.entity';
+import { User } from './user.entity';
+import { Hotel } from './hotel.entity';
+import { Cart } from './cart.entity';
 
 @Table({ tableName: 'payments' })
 export class Payment extends Model<Payment> {

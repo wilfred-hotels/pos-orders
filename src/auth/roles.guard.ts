@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from './roles.decorator';
 import * as jwt from 'jsonwebtoken';
-import { RevokedToken } from './revoked-token.entity';
+import { RevokedToken } from '../entities/revoked-token.entity';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

@@ -3,10 +3,10 @@ import { Product } from '../entities/product.entity';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { Hotel } from '../entities/hotel.entity';
-import { User } from '../auth/user.entity';
+import { User } from '../entities/user.entity';
 import { Cart } from '../entities/cart.entity';
 import { CartItem } from '../entities/cart-item.entity';
-import { RevokedToken } from '../auth/revoked-token.entity';
+import { RevokedToken } from '../entities/revoked-token.entity';
 import * as bcrypt from 'bcryptjs';
 
 // Load .env so DB_* env vars are available when running via ts-node

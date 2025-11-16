@@ -1,5 +1,5 @@
 import { Column, DataType, Model, Table, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
-import { User } from '../auth/user.entity';
+import { User } from './user.entity';
 import { CartItem } from './cart-item.entity';
 
 @Table({ tableName: 'carts', timestamps: true })

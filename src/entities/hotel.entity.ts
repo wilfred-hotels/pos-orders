@@ -1,5 +1,5 @@
 import { Column, DataType, Model, Table, HasMany } from 'sequelize-typescript';
-import { User } from '../auth/user.entity';
+import { User } from './user.entity';
 import { Product } from './product.entity';
 
 @Table({ tableName: 'hotels', timestamps: false })

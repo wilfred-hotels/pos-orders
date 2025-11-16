@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Req, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import * as jwt from 'jsonwebtoken';
-import { RevokedToken } from './revoked-token.entity';
+import { RevokedToken } from '../entities/revoked-token.entity';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SuperAdminLoginDto } from './dto/super-admin-login.dto';

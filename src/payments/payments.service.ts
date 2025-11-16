@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Op } from 'sequelize';
 import { InjectModel } from '@nestjs/sequelize';
-import { Payment } from './payment.entity';
+import { Payment } from '../entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Order } from '../entities/order.entity';
 
