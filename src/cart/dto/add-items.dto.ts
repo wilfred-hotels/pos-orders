@@ -21,5 +21,6 @@ export class AddItemsDto {
   items: CartItemDto[];
 
   @ApiProperty({ example: 'guest-or-user-id', description: 'User or guest id that owns the cart' })
+  @IsUUID()
   userId?: string;
 }
