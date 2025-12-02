@@ -32,7 +32,7 @@ export class CartController {
     @ApiResponse({ status: 200, description: 'Updated cart', schema: { example: { id: 'cart-uuid', userId: 'guest-uuid', items: [{ id: 'item-uuid', productId: 1, quantity: 2 }] } } })
     async addItems(@Req() req: any, @Body() body: AddItemsDto) {
         const ip = req.ip || req.headers?.['x-forwarded-for'] || req.connection?.remoteAddress;
-    const userId = req.user?.id || (body as any)?.userId;
+      const userId = body.userId 
         this.logger.debug(`POST /cart/items from ${ip} - user=${userId}`);
         try { this.logger.debug(`body: ${JSON.stringify(body)}`); } catch (e) { this.logger.debug('body: [unstringifiable]'); }
         if (!userId) {
